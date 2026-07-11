@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Голосование группы THE DOGS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #12121c;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            color: #eee;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: #1e1e30;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+        }
+        h1 {
+            text-align: center;
+            color: #f0a030;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .phase-box {
+            background: #2a2a40;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f0a030;
+        }
+        .phase-title {
+            font-weight: bold;
+            font-size: 18px;
+            color: #f0a030;
+            margin-bottom: 5px;
+        }
+        .phase-desc {
+            color: #bbb;
+            font-size: 14px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .input-row label {
+            min-width: 30px;
+            font-weight: bold;
+            color: #aaa;
+        }
+        .input-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #12121c;
+            color: #fff;
+        }
+        .btn {
+            background: #f0a030;
+            color: #12121c;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 5px 0;
+        }
+        .btn:hover {
+            background: #d48a1a;
+            transform: scale(1.02);
+        }
+        .btn-secondary {
+            background: #3a3a5a;
+            color: #ddd;
+        }
+        .btn-secondary:hover {
+            background: #4a4a6a;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .song-list {
+            background: #12121c;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+        }
+        .song-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+        }
+        .song-item:last-child {
+            border-bottom: none;
+        }
+        .song-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #f0a030;
+        }
+        .result-box {
+            background: #12121c;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            border-left: 4px solid #f0a030;
+        }
+        .winner {
+            background: #2a3a2a;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin: 4px 0;
+        }
+        .status {
+            color: #888;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 15px;
+        }
+        .voter-name {
+            margin: 10px 0;
+        }
+        .voter-name input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #12121c;
+            color: #fff;
+            font-size: 16px;
+        }
+        .result-votes {
+            font-size: 14px;
+            color: #aaa;
+            margin-left: 10px;
+        }
+        .timer {
+            color: #f0a030;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            color: #555;
+            font-size: 12px;
+            margin-top: 25px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎵 THE DOGS — голосование</h1>
+    <div class="subtitle">Самара (UTC+4) • Каждый участник → 4 песни → 6 лучших</div>
+
+    <!-- Блок для отображения текущей фазы -->
+    <div id="phaseDisplay" class="phase-box">
+        <div class="phase-title" id="phaseTitle">Загрузка...</div>
+        <div class="phase-desc" id="phaseDesc"></div>
+    </div>
+
+    <!-- ========== ФАЗА 1: СБОР ПЕСЕН ========== -->
+    <div id="phaseCollect" class="hidden">
+        <div id="inputArea"></div>
+        <button class="btn" id="addMemberBtn">➕ Добавить участника</button>
+        <button class="btn btn-secondary" id="finishCollectBtn">✅ Завершить сбор и перейти к голосованию</button>
+        <div id="collectStatus" class="status"></div>
+    </div>
+
+    <!-- ========== ФАЗА 2: ГОЛОСОВАНИЕ ========== -->
+    <div id="phaseVote" class="hidden">
+        <div class="voter-name">
+            <input type="text" id="voterName" placeholder="Введите ваше имя (например, Алексей)">
+        </div>
+        <div id="votingList" class="song-list"></div>
+        <button class="btn" id="voteBtn">🗳️ Проголосовать</button>
+        <div id="voteStatus" class="status"></div>
+        <div id="alreadyVoted" class="status" style="color: #f0a030;"></div>
+    </div>
+
+    <!-- ========== ФАЗА 3: РЕЗУЛЬТАТЫ ========== -->
+    <div id="phaseResults" class="hidden">
+        <div id="resultBox" class="result-box"></div>
+        <button class="btn btn-secondary" id="resetBtn">🔄 Начать новый цикл (только для администратора)</button>
+    </div>
+
+    <!-- ========== ФАЗА 4: ОЖИДАНИЕ ========== -->
+    <div id="phaseWait" class="hidden">
+        <div class="phase-box" style="border-left-color: #888;">
+            <div class="phase-title">⏳ Ожидание</div>
+            <div class="phase-desc" id="waitDesc"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <span id="clockDisplay">⏰ ...</span>
+    </div>
+</div>
+
+<script>
+    (function() {
+        'use strict';
+
+        // --- КОНСТАНТЫ ---
+        const TZ = 'Europe/Samara'; // UTC+4
+        const SONGS_PER_MEMBER = 4;
+        const VOTE_LIMIT = 6;
+        const STORAGE_KEY = 'the_dogs_voting_data';
+
+        // --- ФУНКЦИИ ВРЕМЕНИ (всё по Самаре) ---
+        function getSamaraTime() {
+            const now = new Date();
+            // Формируем строку с поправкой на часовой пояс Самары (UTC+4)
+            const samaraStr = now.toLocaleString('en-US', { timeZone: TZ });
+            return new Date(samaraStr);
+        }
+
+        function getCurrentPhase() {
+            const now = getSamaraTime();
+            const day = now.getDay(); // 0=вс, 1=пн, 2=вт, ...
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+
+            // Сбор песен: до воскресенья 00:00
+            if (day === 0 && hours === 0 && minutes === 0) {
+                // Воскресенье 00:00 — переключение на голосование
+                return 'vote';
+            }
+            if (day === 0 && hours < 0) { /* не бывает */ }
+            if (day === 0) {
+                // Воскресенье, но не 00:00 — голосование
+                return 'vote';
+            }
+            if (day === 1) {
+                // Понедельник — результаты (до 00:00 уже подвели)
+                return 'results';
+            }
+            if (day === 2 && hours >= 12) {
+                // Вторник с 12:00 — новый сбор
+                return 'collect';
+            }
+            if (day === 2 && hours < 12) {
+                // Вторник до 12:00 — результаты ещё видны (или ожидание)
+                return 'results';
+            }
+            if (day >= 3 && day <= 6) {
+                // Среда-суббота — сбор песен
+                return 'collect';
+            }
+            // fallback
+            return 'collect';
+        }
+
+        function getPhaseDescription(phase) {
+            const now = getSamaraTime();
+            const day = now.getDay();
+            const hours = now.getHours();
+            const mins = now.getMinutes();
+
+            switch(phase) {
+                case 'collect':
+                    let deadline = new Date(now);
+                    // следующее воскресенье 00:00
+                    let daysUntilSun = (7 - day) % 7;
+                    if (daysUntilSun === 0 && hours >= 0) daysUntilSun = 7;
+                    deadline.setDate(deadline.getDate() + daysUntilSun);
+                    deadline.setHours(0, 0, 0, 0);
+                    const diff = Math.floor((deadline - now) / (1000 * 60 * 60));
+                    return `📥 Сбор песен. Осталось ${diff} часов до дедлайна (воскресенье 00:00). Каждый участник добавляет 4 песни.`;
+                case 'vote':
+                    return `🗳️ Голосование! Выберите 6 песен из списка. Голосование завершится в понедельник 00:00.`;
+                case 'results':
+                    return `🏆 Итоги голосования. 6 песен с наибольшим числом голосов — в репертуар. Новый сбор со вторника 12:00.`;
+                case 'wait':
+                    return `⏳ Ожидание. Следующий сбор песен начнётся во вторник в 12:00.`;
+                default:
+                    return '';
+            }
+        }
+
+        // --- РАБОТА С ДАННЫМИ (localStorage) ---
+        function loadData() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                return {
+                    songs: [],          // массив строк (все песни)
+                    votes: {},          // { имя: [индексы выбранных песен] }
+                    voters: [],         // список имён проголосовавших
+                    phase: 'collect',   // текущая фаза
+                    lastReset: null     // дата последнего сброса
+                };
+            }
+            try {
+                return JSON.parse(raw);
+            } catch {
+                return {
+                    songs: [],
+                    votes: {},
+                    voters: [],
+                    phase: 'collect',
+                    lastReset: null
+                };
+            }
+        }
+
+        function saveData(data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        // --- ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ---
+        function render() {
+            const data = loadData();
+            const phase = getCurrentPhase();
+
+            // Обновляем часы
+            const now = getSamaraTime();
+            document.getElementById('clockDisplay').textContent = '🕒 ' + now.toLocaleString('ru-RU', { timeZone: TZ });
+
+            // Показываем описание фазы
+            document.getElementById('phaseTitle').textContent = phase === 'collect' ? '📥 Сбор песен' :
+                phase === 'vote' ? '🗳️ Голосование' :
+                    phase === 'results' ? '🏆 Результаты' : '⏳ Ожидание';
+            document.getElementById('phaseDesc').textContent = getPhaseDescription(phase);
+
+            // Скрываем все фазы
+            document.getElementById('phaseCollect').classList.add('hidden');
+            document.getElementById('phaseVote').classList.add('hidden');
+            document.getElementById('phaseResults').classList.add('hidden');
+            document.getElementById('phaseWait').classList.add('hidden');
+
+            // Показываем нужную
+            if (phase === 'collect') {
+                document.getElementById('phaseCollect').classList.remove('hidden');
+                renderCollectPhase(data);
+            } else if (phase === 'vote') {
+                document.getElementById('phaseVote').classList.remove('hidden');
+                renderVotePhase(data);
+            } else if (phase === 'results') {
+                document.getElementById('phaseResults').classList.remove('hidden');
+                renderResultsPhase(data);
+            } else {
+                document.getElementById('phaseWait').classList.remove('hidden');
+                const now2 = getSamaraTime();
+                const nextCollect = new Date(now2);
+                // Следующий вторник 12:00
+                let daysUntilTue = (2 - now2.getDay() + 7) % 7;
+                if (daysUntilTue === 0 && now2.getHours() >= 12) daysUntilTue = 7;
+                nextCollect.setDate(nextCollect.getDate() + daysUntilTue);
+                nextCollect.setHours(12, 0, 0, 0);
+                const diffHours = Math.floor((nextCollect - now2) / (1000 * 60 * 60));
+                document.getElementById('waitDesc').textContent =
+                    `Новый сбор песен начнётся во вторник в 12:00. Осталось ${diffHours} часов.`;
+            }
+        }
+
+        // --- ФАЗА СБОРА ---
+        function renderCollectPhase(data) {
+            const area = document.getElementById('inputArea');
+            area.innerHTML = '';
+            const status = document.getElementById('collectStatus');
+
+            // Показываем уже добавленные песни
+            if (data.songs.length > 0) {
+                const list = document.createElement('div');
+                list.style.marginBottom = '10px';
+                list.style.padding = '10px';
+                list.style.background = '#12121c';
+                list.style.borderRadius = '8px';
+                list.innerHTML = `<strong>Добавлено песен:</strong> ${data.songs.length} (${Math.ceil(data.songs.length / 4)} участников)`;
+                area.appendChild(list);
+            }
+
+            // Форма для добавления нового участника
+            const memberDiv = document.createElement('div');
+            memberDiv.className = 'input-group';
+            memberDiv.style.border = '1px solid #444';
+            memberDiv.style.padding = '12px';
+            memberDiv.style.borderRadius = '10px';
+            memberDiv.style.marginBottom = '10px';
+
+            const title = document.createElement('p');
+            title.textContent = `Участник ${Math.floor(data.songs.length / 4) + 1}`;
+            title.style.fontWeight = 'bold';
+            title.style.color = '#f0a030';
+            memberDiv.appendChild(title);
+
+            const inputs = [];
+            for (let i = 0; i < SONGS_PER_MEMBER; i++) {
+                const row = document.createElement('div');
+                row.className = 'input-row';
+                const label = document.createElement('label');
+                label.textContent = `${i + 1}.`;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = `Песня ${i + 1}`;
+                input.className = 'member-song-input';
+                row.appendChild(label);
+                row.appendChild(input);
+                memberDiv.appendChild(row);
+                inputs.push(input);
+            }
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'btn btn-secondary';
+            addBtn.textContent = '➕ Добавить песни этого участника';
+            addBtn.style.width = '100%';
+            addBtn.addEventListener('click', function() {
+                const songs = inputs.map(inp => inp.value.trim());
+                if (songs.some(s => s === '')) {
+                    alert('Заполните все 4 поля!');
+                    return;
+                }
+                // Проверка на дубли (необязательно)
+                const newSongs = songs.filter(s => s !== '');
+                if (newSongs.length === 0) return;
+                data.songs.push(...newSongs);
+                saveData(data);
+                render();
+            });
+            memberDiv.appendChild(addBtn);
+            area.appendChild(memberDiv);
+
+            // Кнопка "завершить сбор" — только если есть 12 песен
+            const finishBtn = document.getElementById('finishCollectBtn');
+            if (data.songs.length >= 12) {
+                finishBtn.classList.remove('hidden');
+            } else {
+                finishBtn.classList.add('hidden');
+            }
+
+            status.textContent = `Всего песен: ${data.songs.length} (нужно 12)`;
+        }
+
+        // --- ФАЗА ГОЛОСОВАНИЯ ---
+        function renderVotePhase(data) {
+            const list = document.getElementById('votingList');
+            const status = document.getElementById('voteStatus');
+            const alreadyDiv = document.getElementById('alreadyVoted');
+
+            // Проверяем, голосовал ли уже этот пользователь (по имени)
+            const nameInput = document.getElementById('voterName');
+            nameInput.value = '';
+            alreadyDiv.textContent = '';
+
+            // Если песен меньше 12 — нечего выбирать
+            if (data.songs.length < 12) {
+                list.innerHTML = '<p style="color:#888;">Недостаточно песен для голосования. Дождитесь сбора.</p>';
+                document.getElementById('voteBtn').classList.add('hidden');
+                return;
+            }
+
+            // Показываем список песен (перемешанный, чтобы никто не знал чьи)
+            const shuffled = [...data.songs];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+
+            list.innerHTML = '';
+            shuffled.forEach((song, index) => {
+                const div = document.createElement('div');
+                div.className = 'song-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="vote_${index}" data-index="${index}">
+                    <span>${index + 1}. ${song}</span>
+                `;
+                list.appendChild(div);
+            });
+
+            // Ограничение на 6 выборов
+            const checkboxes = list.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', function() {
+                    const checked = list.querySelectorAll('input[type="checkbox"]:checked');
+                    if (checked.length > VOTE_LIMIT) {
+                        this.checked = false;
+                        alert(`Можно выбрать не больше ${VOTE_LIMIT} песен.`);
+                    }
+                });
+            });
+
+            document.getElementById('voteBtn').classList.remove('hidden');
+
+            // Обработчик голосования
+            document.getElementById('voteBtn').onclick = function() {
+                const name = nameInput.value.trim();
+                if (name === '') {
+                    alert('Введите ваше имя!');
+                    return;
+                }
+
+                // Проверяем, не голосовал ли уже этот пользователь
+                if (data.voters.includes(name)) {
+                    alreadyDiv.textContent = `❌ ${name}, вы уже проголосовали.`;
+                    return;
+                }
+
+                const checked = list.querySelectorAll('input[type="checkbox"]:checked');
+                if (checked.length === 0) {
+                    alert('Выберите хотя бы одну песню.');
+                    return;
+                }
+
+                const selectedIndices = [];
+                checked.forEach(cb => {
+                    selectedIndices.push(parseInt(cb.dataset.index));
+                });
+
+                // Сохраняем голос
+                data.votes[name] = selectedIndices;
+                data.voters.push(name);
+                saveData(data);
+
+                // Блокируем интерфейс
+                checkboxes.forEach(cb => cb.disabled = true);
+                document.getElementById('voteBtn').disabled = true;
+                alreadyDiv.textContent = `✅ ${name}, ваш голос учтён! Спасибо.`;
+                status.textContent = `Проголосовало: ${data.voters.length} человек.`;
+                render();
+            };
+
+            // Показываем, кто уже проголосовал
+            if (data.voters.length > 0) {
+                status.textContent = `Проголосовало: ${data.voters.length} человек.`;
+            } else {
+                status.textContent = 'Никто ещё не проголосовал.';
+            }
+        }
+
+        // --- ФАЗА РЕЗУЛЬТАТОВ ---
+        function renderResultsPhase(data) {
+            const box = document.getElementById('resultBox');
+            const songs = data.songs;
+
+            if (songs.length < 12) {
+                box.innerHTML = '<p style="color:#888;">Недостаточно данных для подведения итогов.</p>';
+                return;
+            }
+
+            // Подсчёт голосов
+            const voteCounts = {};
+            songs.forEach((song, idx) => { voteCounts[idx] = 0; });
+
+            // Суммируем голоса всех участников
+            for (const voterName in data.votes) {
+                const indices = data.votes[voterName];
+                indices.forEach(idx => {
+                    if (voteCounts[idx] !== undefined) {
+                        voteCounts[idx] += 1;
+                    }
+                });
+            }
+
+            // Сортируем по убыванию голосов
+            const sorted = Object.entries(voteCounts).sort((a, b) => b[1] - a[1]);
+
+            // Берём топ-6
+            const top6 = sorted.slice(0, 6);
+
+            let html = `<h3 style="color:#f0a030;">🏆 Топ-6 песен</h3>`;
+            top6.forEach(([idx, count], pos) => {
+                const song = songs[parseInt(idx)];
+                html += `<div class="winner">${pos+1}. ${song} — <span class="result-votes">${count} голосов</span></div>`;
+            });
+
+            // Показываем все остальные песни для информации
+            if (sorted.length > 6) {
+                html += `<div style="margin-top: 15px; color: #888; font-size: 14px;">Остальные:</div>`;
+                sorted.slice(6).forEach(([idx, count]) => {
+                    const song = songs[parseInt(idx)];
+                    html += `<div style="padding: 3px 0; border-bottom: 1px solid #222; font-size: 13px; color: #aaa;">
+                        ${song} — ${count} голосов
+                    </div>`;
+                });
+            }
+
+            // Общее число проголосовавших
+            const totalVoters = data.voters.length;
+            html += `<div style="margin-top: 15px; color: #888; font-size: 14px;">
+                👥 Проголосовало: ${totalVoters} человек
+            </div>`;
+
+            box.innerHTML = html;
+
+            // Кнопка сброса — только для админа
+            document.getElementById('resetBtn').onclick = function() {
+                if (confirm('Сбросить все данные и начать новый цикл?')) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    location.reload();
+                }
+            };
+        }
+
+        // --- ИНИЦИАЛИЗАЦИЯ ---
+        // Добавляем обработчик для кнопки "добавить участника"
+        document.getElementById('addMemberBtn').addEventListener('click', function() {
+            render(); // просто перерисовываем
+        });
+
+        // Кнопка "завершить сбор"
+        document.getElementById('finishCollectBtn').addEventListener('click', function() {
+            const data = loadData();
+            if (data.songs.length < 12) {
+                alert(`Сейчас ${data.songs.length} песен. Нужно ровно 12. Добавьте ещё участников.`);
+                return;
+            }
+            if (data.songs.length > 12) {
+                alert(`Сейчас ${data.songs.length} песен. Нужно ровно 12. Уберите лишние.`);
+                return;
+            }
+            // Переход к голосованию (фаза определится автоматически по времени)
+            // Но если время не совпадает, можно принудительно сменить фазу в данных
+            // Мы не делаем принудительно, чтобы не ломать логику
+            alert('Сбор завершён! Теперь можно голосовать (если наступило воскресенье).');
+            render();
+        });
+
+        // Автоматическое обновление каждые 10 секунд
+        setInterval(render, 10000);
+
+        // Первый рендер
+        render();
+
+        // При загрузке проверяем, не нужно ли подвести итоги автоматически
+        // (по времени они подведутся при переходе в фазу results)
+        // Но мы также можем проверить, не наступил ли понедельник 00:00
+        // Это уже учтено в getCurrentPhase
+
+        console.log('Система голосования THE DOGS запущена. Время: Самара (UTC+4)');
+    })();
+</script>
+</body>
+</html>
