@@ -35,7 +35,6 @@
         .result-votes { font-size: 14px; color: #aaa; margin-left: 10px; }
         .footer { text-align: center; color: #555; font-size: 12px; margin-top: 25px; }
         .warning { color: #f0a030; font-size: 14px; margin-top: 5px; }
-        .green { color: #6c6; }
         .dev-panel { background: #2a2a40; padding: 15px; border-radius: 10px; margin: 10px 0; border: 1px dashed #f0a030; }
         .dev-panel .btn { font-size: 13px; padding: 8px 16px; margin-right: 8px; }
         .dev-panel .btn-danger { background: #a03030; color: #fff; }
@@ -82,6 +81,7 @@
     <!-- ФАЗА 1: СБОР ПЕСЕН -->
     <div id="phaseCollect" class="hidden">
         <div id="inputArea"></div>
+        <!-- Кнопка ДОБАВИТЬ УЧАСТНИКА (гарантированно работает) -->
         <button class="btn" id="addMemberBtn">➕ Добавить участника</button>
         <button class="btn btn-secondary" id="finishCollectBtn">✅ Завершить сбор</button>
         <div id="collectStatus" class="status"></div>
@@ -177,7 +177,7 @@
                     deadline.setDate(deadline.getDate() + daysUntilSun);
                     deadline.setHours(0, 0, 0, 0);
                     const diff = Math.floor((deadline - now) / (1000 * 60 * 60));
-                    return `📥 Сбор песен. Осталось ${diff} часов до дедлайна (воскресенье 00:00). Каждый участник добавляет 4 песни.`;
+                    return `📥 Сбор песен. Осталось ${diff} часов до дедлайна (воскресенье 00:00).`;
                 case 'vote':
                     return `🗳️ Голосование! Выберите 6 песен из списка. Нельзя голосовать за свои песни.`;
                 case 'results':
@@ -242,7 +242,6 @@
             const area = document.getElementById('inputArea');
             const status = document.getElementById('collectStatus');
             const warning = document.getElementById('collectWarning');
-            const addBtn = document.getElementById('addMemberBtn');
             const finishBtn = document.getElementById('finishCollectBtn');
 
             area.innerHTML = '';
@@ -262,7 +261,6 @@
                 `;
                 area.appendChild(placeholderDiv);
 
-                addBtn.disabled = false;
                 finishBtn.disabled = true;
                 status.textContent = 'Ждём первых песен...';
                 return;
@@ -359,10 +357,6 @@
                 warning.textContent = '✅ Все 12 песен собраны! Переходите к голосованию.';
                 warning.style.color = '#6c6';
             }
-
-            // Кнопка "Добавить участника" всегда активна
-            addBtn.disabled = false;
-            addBtn.textContent = '➕ Добавить участника';
 
             finishBtn.disabled = (data.songs.length !== 12);
             finishBtn.textContent = data.songs.length === 12 ? '✅ Завершить сбор' : 
@@ -610,33 +604,35 @@
             render();
         });
 
-        // --- ИНИЦИАЛИЗАЦИЯ ---
-        document.getElementById('addMemberBtn').addEventListener('click', function() {
-            render(); // просто перерисовываем
+        // --- ОБРАБОТЧИКИ КНОПОК (ГАРАНТИРОВАННО РАБОТАЮТ) ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // Кнопка "Добавить участника" — всегда кликабельна
+            document.getElementById('addMemberBtn').addEventListener('click', function() {
+                render(); // перерисовываем, чтобы показать форму нового участника
+            });
+
+            // Кнопка "Завершить сбор"
+            document.getElementById('finishCollectBtn').addEventListener('click', function() {
+                const data = loadData();
+                if (data.songs.length !== 12) {
+                    alert(`Сейчас ${data.songs.length} песен. Нужно ровно 12.`);
+                    return;
+                }
+                alert('Сбор завершён! Теперь можно голосовать.');
+                const data2 = loadData();
+                if (data2.devPhase) {
+                    data2.devPhase = 'vote';
+                    saveData(data2);
+                }
+                render();
+            });
         });
 
-        document.getElementById('finishCollectBtn').addEventListener('click', function() {
-            const data = loadData();
-            if (data.songs.length !== 12) {
-                alert(`Сейчас ${data.songs.length} песен. Нужно ровно 12.`);
-                return;
-            }
-            alert('Сбор завершён! Теперь можно голосовать.');
-            const data2 = loadData();
-            if (data2.devPhase) {
-                data2.devPhase = 'vote';
-                saveData(data2);
-            }
-            render();
-        });
-
-        // Автообновление ОТКЛЮЧЕНО, чтобы поля не сбрасывались
-        // setInterval(render, 10000);
-
-        // Первый рендер
+        // --- ЗАПУСК ---
+        // setInterval(render, 10000); // отключено
         render();
 
-        console.log('🎵 Голосование THE DOGS (Самара, UTC+4). Запрет голосования за свои песни включён. Автообновление выключено для удобства ввода.');
+        console.log('🎵 Голосование THE DOGS (Самара, UTC+4). Запрет голосования за свои песни включён. Кнопки гарантированно работают.');
     })();
 </script>
 </body>
