@@ -150,14 +150,12 @@
         </div>
     </div>
 
-    <!-- ================= ШАГ 1: СБОР ПЕСЕН ================= -->
     <div id="stepCollect">
         <div id="memberFormContainer"></div>
         <div id="collectStatus" class="status"></div>
         <button class="btn btn-secondary" id="finishCollectBtn" disabled>⏳ Нужно ещё 12 песен</button>
     </div>
 
-    <!-- ================= ШАГ 2: ГОЛОСОВАНИЕ ================= -->
     <div id="stepVote" class="hidden">
         <div class="input-group">
             <p><strong>Вход для голосования</strong></p>
@@ -170,19 +168,16 @@
         <div id="voteStatus" class="status"></div>
     </div>
 
-    <!-- ================= ШАГ 3: РЕЗУЛЬТАТЫ ================= -->
     <div id="stepResults" class="hidden">
         <div id="resultBox"></div>
         <button class="btn btn-secondary" id="resetBtn">🔄 Начать новый цикл</button>
     </div>
 
-    <!-- ================= ШАГ 4: ОЖИДАНИЕ ================= -->
     <div id="stepWait" class="hidden">
         <p style="color:#888;">⏳ Ожидание. Новый сбор начнется во вторник в 12:00.</p>
     </div>
 </div>
 
-<!-- Модальное окно колеса фортуны -->
 <div class="modal-overlay" id="fortuneModal">
     <div class="modal-content">
         <button class="modal-close" id="closeFortuneBtn">&times;</button>
@@ -204,7 +199,6 @@
         const STORAGE_KEY = 'dogs_voting';
         const VOTE_DURATION_HOURS = 24;
 
-        // --- КОЛЕСО ФОРТУНЫ С ВЕСАМИ ---
         const FORTUNE_ITEMS = [
             { text: '🍑 Гурковский проиграл жопу', weight: 10 },
             { text: '👠 Поем лабутены', weight: 3 },
@@ -219,16 +213,12 @@
         const FORTUNE_WEIGHTS = FORTUNE_ITEMS.map(item => item.weight);
         const COLORS = ['#e74c3c','#f1c40f','#2ecc71','#3498db','#9b59b6','#e67e22','#1abc9c','#e84393'];
 
-        // --- ДАННЫЕ ---
         let DATA = { songs: [], members: [], votes: {}, voters: [], phase: 'collect', voteStartTime: null };
         let currentVoter = null;
-
-        // --- КОЛЕСО ---
         let wheelRotation = 0;
         let isSpinning = false;
         let canvas, ctx;
 
-        // --- ЗАГРУЗКА/СОХРАНЕНИЕ ---
         function loadData() {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (raw) {
@@ -246,15 +236,12 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
         }
 
-        // --- ОБНОВЛЕНИЕ СЧЁТЧИКА ---
         function updateCounter() {
             document.getElementById('counterDisplay').textContent = `🎵 ${DATA.songs.length} / 12 песен`;
         }
 
-        // --- ПРОВЕРКА АВТОМАТИЧЕСКОГО ЗАВЕРШЕНИЯ ---
         function checkAutoComplete() {
             if (DATA.phase !== 'vote') return;
-
             const totalMembers = DATA.members.length;
             const votedCount = DATA.voters.length;
             if (totalMembers > 0 && votedCount >= totalMembers) {
@@ -263,7 +250,6 @@
                 render();
                 return;
             }
-
             if (DATA.voteStartTime) {
                 const elapsed = (Date.now() - DATA.voteStartTime) / (1000 * 60 * 60);
                 if (elapsed >= VOTE_DURATION_HOURS) {
@@ -275,7 +261,6 @@
             }
         }
 
-        // --- РЕНДЕРИНГ ---
         function render() {
             loadData();
             updateCounter();
@@ -304,7 +289,6 @@
                 `Фаза: ${DATA.phase} | Песен: ${DATA.songs.length} | Проголосовало: ${DATA.voters.length}`;
         }
 
-        // --- ОБНОВЛЕНИЕ СТАТУСА ГОЛОСОВАНИЯ ---
         function updateVoteStatus() {
             const total = DATA.members.length;
             const voted = DATA.voters.length;
@@ -330,7 +314,6 @@
             }
         }
 
-        // --- РЕНДЕР СБОРА ---
         function renderCollect() {
             const formContainer = document.getElementById('memberFormContainer');
             const status = document.getElementById('collectStatus');
@@ -367,7 +350,6 @@
                 status.textContent = 'Сбор завершён!';
             }
 
-            // --- АВТОМАТИЧЕСКОЕ ОТКРЫТИЕ КОЛЕСА ПОСЛЕ ДОБАВЛЕНИЯ ПЕСЕН ---
             if (DATA.songs.length > 0 && DATA.songs.length < 12) {
                 const lastMember = DATA.members[DATA.members.length - 1];
                 if (lastMember) {
@@ -387,7 +369,6 @@
             finishBtn.textContent = canFinish ? '✅ Завершить сбор' : `⏳ Нужно ещё ${12 - DATA.songs.length} песен`;
         }
 
-        // --- ДОБАВИТЬ УЧАСТНИКА ---
         window.addMember = function() {
             const nameInput = document.getElementById('newMemberName');
             const passInput = document.getElementById('newMemberPassword');
@@ -423,7 +404,6 @@
             alert('✅ Ваши 4 песни добавлены!');
         };
 
-        // --- ЗАВЕРШИТЬ СБОР ---
         document.getElementById('finishCollectBtn').addEventListener('click', function() {
             if (DATA.songs.length !== 12) {
                 alert('Нужно ровно 12 песен! Сейчас ' + DATA.songs.length);
@@ -435,7 +415,6 @@
             render();
         });
 
-        // --- РЕНДЕР ГОЛОСОВАНИЯ ---
         function renderVote() {
             const list = document.getElementById('voteSongList');
             const status = document.getElementById('voteStatus');
@@ -526,7 +505,6 @@
             status.textContent = 'Вы вошли как ' + name + '. Выберите 6 песен.';
         }
 
-        // --- ГОЛОСОВАНИЕ + АВТОМАТИЧЕСКОЕ КОЛЕСО ---
         document.getElementById('voteBtn').addEventListener('click', function() {
             const name = currentVoter;
             if (!name) { alert('Сначала войдите!'); return; }
@@ -543,7 +521,6 @@
             DATA.voters.push(name);
             saveData();
 
-            // --- ПОСЛЕ ГОЛОСОВАНИЯ АВТОМАТИЧЕСКИ ОТКРЫВАЕМ КОЛЕСО ---
             const modal = document.getElementById('fortuneModal');
             if (modal) {
                 modal.classList.add('active');
@@ -557,7 +534,6 @@
             alert('✅ Ваш голос учтён!');
         });
 
-        // --- РЕНДЕР РЕЗУЛЬТАТОВ ---
         function renderResults() {
             const box = document.getElementById('resultBox');
             if (DATA.songs.length !== 12) {
@@ -592,7 +568,6 @@
             box.innerHTML = html;
         }
 
-        // --- СБРОС ---
         document.getElementById('resetBtn').addEventListener('click', function() {
             if (confirm('Сбросить все данные?')) {
                 localStorage.removeItem(STORAGE_KEY);
@@ -600,7 +575,6 @@
             }
         });
 
-        // --- РЕЖИМ РАЗРАБОТЧИКА ---
         let clickCount = 0;
         document.getElementById('mainTitle').addEventListener('click', function() {
             clickCount++;
@@ -632,10 +606,6 @@
         document.getElementById('devHidePanelBtn').addEventListener('click', function() {
             document.getElementById('devPanel').classList.add('dev-hidden');
         });
-
-        // =====================================================
-        // ============= КОЛЕСО ФОРТУНЫ ========================
-        // =====================================================
 
         function getWeightedRandomIndex() {
             const totalWeight = FORTUNE_WEIGHTS.reduce((a, b) => a + b, 0);
@@ -742,20 +712,40 @@
                     document.getElementById('wheelResult').classList.add('highlight');
                     isSpinning = false;
                     document.getElementById('spinBtn').disabled = false;
+                    
+                    // Автоматическое закрытие через 2.5 секунды
+                    setTimeout(() => {
+                        document.getElementById('fortuneModal').classList.remove('active');
+                    }, 2500);
                 }
             }
             requestAnimationFrame(animate);
         }
 
-        // --- ИНИЦИАЛИЗАЦИЯ КОЛЕСА ---
         function initWheel() {
             canvas = document.getElementById('wheelCanvas');
             ctx = canvas.getContext('2d');
             drawWheel(0);
-
             document.getElementById('spinBtn').addEventListener('click', spinWheel);
             canvas.addEventListener('click', spinWheel);
         }
+
+        // --- ЗАКРЫТИЕ КОЛЕСА (крестик, фон, ESC) ---
+        document.getElementById('closeFortuneBtn').addEventListener('click', function() {
+            document.getElementById('fortuneModal').classList.remove('active');
+        });
+
+        document.getElementById('fortuneModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.getElementById('fortuneModal').classList.remove('active');
+            }
+        });
 
         // --- ЗАПУСК ---
         loadData();
