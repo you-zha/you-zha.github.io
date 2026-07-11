@@ -127,7 +127,6 @@
         const SONGS_PER_MEMBER = 4;
         const VOTE_LIMIT = 6;
         const STORAGE_KEY = 'the_dogs_voting_data';
-        const MAX_MEMBERS = 3;
         const PHASES = ['collect', 'vote', 'results', 'wait'];
         const PLACEHOLDER_IMAGE_URL = 'https://img.freepik.com/free-vector/no-data-concept-illustration_114360-536.jpg?w=400';
 
@@ -143,7 +142,7 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         }
 
-        // --- ВРЕМЯ ---
+        // --- ВРЕМЯ (Самара, UTC+4) ---
         function getSamaraTime() {
             const now = new Date();
             return new Date(now.toLocaleString('en-US', { timeZone: TZ }));
@@ -178,11 +177,11 @@
                     deadline.setDate(deadline.getDate() + daysUntilSun);
                     deadline.setHours(0, 0, 0, 0);
                     const diff = Math.floor((deadline - now) / (1000 * 60 * 60));
-                    return `📥 Сбор песен. Осталось ${diff} часов до дедлайна. Каждый участник добавляет 4 песни.`;
+                    return `📥 Сбор песен. Осталось ${diff} часов до дедлайна (воскресенье 00:00). Каждый участник добавляет 4 песни.`;
                 case 'vote':
                     return `🗳️ Голосование! Выберите 6 песен из списка. Нельзя голосовать за свои песни.`;
                 case 'results':
-                    return `🏆 Итоги голосования. 6 песен с наибольшим числом голосов.`;
+                    return `🏆 Итоги голосования. 6 песен с наибольшим числом голосов — в репертуар.`;
                 case 'wait':
                     return `⏳ Ожидание. Новый сбор песен начнётся во вторник в 12:00.`;
                 default: return '';
@@ -238,7 +237,7 @@
             }
         }
 
-        // --- ФАЗА СБОРА (с именем участника) ---
+        // --- ФАЗА СБОРА ---
         function renderCollectPhase(data) {
             const area = document.getElementById('inputArea');
             const status = document.getElementById('collectStatus');
@@ -249,7 +248,7 @@
             area.innerHTML = '';
             warning.textContent = '';
 
-            // 📸 Если песен ещё нет — показываем картинку-заглушку
+            // Если песен ещё нет — картинка-заглушка
             if (data.songs.length === 0) {
                 const placeholderDiv = document.createElement('div');
                 placeholderDiv.style.textAlign = 'center';
@@ -280,6 +279,7 @@
                 area.appendChild(list);
             }
 
+            // Если песен меньше 12 — показываем форму для нового участника
             const currentMembers = data.members.length;
             if (data.songs.length < 12) {
                 const memberDiv = document.createElement('div');
@@ -295,7 +295,7 @@
                 title.style.color = '#f0a030';
                 memberDiv.appendChild(title);
 
-                // Поле для имени участника
+                // Поле для имени
                 const nameRow = document.createElement('div');
                 nameRow.className = 'member-name-input';
                 const nameInput = document.createElement('input');
@@ -337,6 +337,7 @@
                         alert('Заполните все 4 поля!');
                         return;
                     }
+                    // Проверяем лимит песен
                     if (data.songs.length + songs.length > 12) {
                         alert(`Нельзя добавить больше 12 песен. Сейчас ${data.songs.length}.`);
                         return;
@@ -359,8 +360,9 @@
                 warning.style.color = '#6c6';
             }
 
-            addBtn.disabled = (data.songs.length >= 12);
-            addBtn.textContent = data.songs.length >= 12 ? '❌ Все добавлены' : '➕ Добавить участника';
+            // Кнопка "Добавить участника" всегда активна
+            addBtn.disabled = false;
+            addBtn.textContent = '➕ Добавить участника';
 
             finishBtn.disabled = (data.songs.length !== 12);
             finishBtn.textContent = data.songs.length === 12 ? '✅ Завершить сбор' : 
@@ -387,10 +389,7 @@
                 return;
             }
 
-            // Проверяем, есть ли голосование для этого пользователя
-            // Всё будет происходить после ввода имени
-
-            // Обработчик ввода имени — показываем доступные песни
+            // Обработчик ввода имени
             nameInput.oninput = function() {
                 const name = nameInput.value.trim();
                 if (name === '') {
@@ -399,7 +398,6 @@
                     return;
                 }
 
-                // Проверяем, голосовал ли уже этот участник
                 if (data.voters.includes(name)) {
                     alreadyDiv.textContent = `❌ ${name}, вы уже проголосовали.`;
                     list.innerHTML = '<p style="color:#888;">Вы уже проголосовали.</p>';
@@ -407,18 +405,13 @@
                     return;
                 }
 
-                // Проверяем, есть ли этот участник в списке членов группы
                 if (!data.members.includes(name)) {
-                    list.innerHTML = `<p style="color:#f0a030;">⚠️ Участник "${name}" не найден в списке группы. Песни не загружены.</p>`;
+                    list.innerHTML = `<p style="color:#f0a030;">⚠️ Участник "${name}" не найден в списке группы.</p>`;
                     voteBtn.disabled = true;
                     return;
                 }
 
-                // Определяем, какие песни принадлежат этому участнику
-                // Нужно знать, кто какие песни добавил. Но мы не храним маппинг "участник → его песни"!
-                // Придётся восстанавливать его из порядка добавления.
-                // Так как мы храним songs в порядке добавления, и members в порядке добавления,
-                // то можно восстановить: песни участника — это songs[ index * 4 ... index * 4 + 3 ]
+                // Определяем свои песни
                 const memberIndex = data.members.indexOf(name);
                 const start = memberIndex * 4;
                 const end = start + 4;
@@ -427,20 +420,18 @@
                     ownSongsIndices.push(i);
                 }
 
-                // Собираем все песни с индексами, но помечаем свои
                 const songList = data.songs.map((song, index) => ({
                     song,
                     index,
                     isOwn: ownSongsIndices.includes(index)
                 }));
 
-                // Перемешиваем, чтобы порядок не выдавал авторство
+                // Перемешиваем
                 for (let i = songList.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [songList[i], songList[j]] = [songList[j], songList[i]];
                 }
 
-                // Рендерим список
                 list.innerHTML = '';
                 songList.forEach(item => {
                     const div = document.createElement('div');
@@ -465,7 +456,6 @@
                     list.appendChild(div);
                 });
 
-                // Ограничение на 6 выборов
                 const checkboxes = list.querySelectorAll('input[type="checkbox"]:not([disabled])');
                 checkboxes.forEach(cb => {
                     cb.addEventListener('change', function() {
@@ -512,7 +502,6 @@
                 data.voters.push(name);
                 saveData(data);
 
-                // Блокируем интерфейс
                 const checkboxes = list.querySelectorAll('input[type="checkbox"]');
                 checkboxes.forEach(cb => cb.disabled = true);
                 voteBtn.disabled = true;
@@ -525,7 +514,7 @@
             nameInput.oninput();
         }
 
-        // --- ФАЗА РЕЗУЛЬТАТОВ (без изменений) ---
+        // --- ФАЗА РЕЗУЛЬТАТОВ ---
         function renderResultsPhase(data) {
             const box = document.getElementById('resultBox');
             if (data.songs.length < 12) {
@@ -551,6 +540,16 @@
                 const song = data.songs[parseInt(idx)];
                 html += `<div class="winner">${pos+1}. ${song} — <span class="result-votes">${count} голосов</span></div>`;
             });
+
+            if (sorted.length > 6) {
+                html += `<div style="margin-top: 15px; color: #888; font-size: 14px;">Остальные:</div>`;
+                sorted.slice(6).forEach(([idx, count]) => {
+                    const song = data.songs[parseInt(idx)];
+                    html += `<div style="padding: 3px 0; border-bottom: 1px solid #222; font-size: 13px; color: #aaa;">
+                        ${song} — ${count} голосов
+                    </div>`;
+                });
+            }
 
             html += `<div style="margin-top: 15px; color: #888; font-size: 14px;">👥 Проголосовало: ${data.voters.length} человек</div>`;
             box.innerHTML = html;
@@ -612,7 +611,9 @@
         });
 
         // --- ИНИЦИАЛИЗАЦИЯ ---
-        document.getElementById('addMemberBtn').addEventListener('click', function() { render(); });
+        document.getElementById('addMemberBtn').addEventListener('click', function() {
+            render(); // просто перерисовываем
+        });
 
         document.getElementById('finishCollectBtn').addEventListener('click', function() {
             const data = loadData();
@@ -629,9 +630,13 @@
             render();
         });
 
-        setInterval(render, 10000);
+        // Автообновление ОТКЛЮЧЕНО, чтобы поля не сбрасывались
+        // setInterval(render, 10000);
+
+        // Первый рендер
         render();
-        console.log('🎵 Голосование THE DOGS (Самара, UTC+4). Запрет голосования за свои песни включён.');
+
+        console.log('🎵 Голосование THE DOGS (Самара, UTC+4). Запрет голосования за свои песни включён. Автообновление выключено для удобства ввода.');
     })();
 </script>
 </body>
