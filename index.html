@@ -3,37 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Голосование THE DOGS</title>
+    <title>THE DOGS — Голосование + Фортуна</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #12121c; font-family: Arial, sans-serif; display: flex; justify-content: center; padding: 20px; color: #eee; }
         .container { max-width: 700px; width: 100%; background: #1e1e30; padding: 25px; border-radius: 20px; }
         h1 { text-align: center; color: #f0a030; cursor: pointer; user-select: none; }
         .subtitle { text-align: center; color: #aaa; margin-bottom: 20px; font-size: 14px; }
-        .timer { text-align: center; color: #f0a030; font-size: 18px; font-weight: bold; margin: 10px 0; }
+        .counter { text-align: center; color: #f0a030; font-size: 20px; font-weight: bold; margin: 10px 0; }
         .btn { background: #f0a030; color: #12121c; border: none; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; margin: 5px 0; }
-        .btn:hover { background: #d48a1a; }
+        .btn:hover { background: #d48a1a; transform: scale(1.02); }
         .btn-secondary { background: #3a3a5a; color: #ddd; }
         .btn-secondary:hover { background: #4a4a6a; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-fortune { background: #7b2fbe; color: #fff; }
+        .btn-fortune:hover { background: #9b4fde; }
         .input-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
         .input-row label { min-width: 30px; color: #aaa; }
         .input-row input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #444; background: #12121c; color: #fff; }
         .input-group { background: #2a2a40; padding: 15px; border-radius: 12px; margin: 15px 0; }
+        .hidden { display: none; }
+        .status { color: #888; text-align: center; margin: 10px 0; }
+        .dev-panel { background: #2a2a40; padding: 15px; border-radius: 10px; margin: 10px 0; border: 1px dashed #f0a030; }
+        .dev-panel .btn { font-size: 13px; padding: 8px 16px; width: auto; display: inline-block; margin-right: 8px; }
+        .dev-hidden { display: none; }
+        .password-hint { color: #888; font-size: 13px; margin-bottom: 10px; }
         .song-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #333; }
         .song-item:last-child { border-bottom: none; }
         .song-item.blocked { opacity: 0.4; pointer-events: none; }
         .your-label { color: #f0a030; font-size: 13px; margin-left: 10px; }
-        .hidden { display: none; }
-        .status { color: #888; text-align: center; margin: 10px 0; }
         .winner { background: #2a3a2a; padding: 8px; border-radius: 6px; margin: 4px 0; }
         .result-votes { color: #aaa; margin-left: 10px; }
-        .dev-panel { background: #2a2a40; padding: 15px; border-radius: 10px; margin: 10px 0; border: 1px dashed #f0a030; }
-        .dev-panel .btn { font-size: 13px; padding: 8px 16px; width: auto; display: inline-block; margin-right: 8px; }
-        .dev-hidden { display: none; }
-        .placeholder-image { max-width: 100%; height: auto; border-radius: 12px; max-height: 200px; object-fit: contain; }
-        .member-status { text-align: center; color: #888; margin: 10px 0; }
-        .password-hint { color: #888; font-size: 13px; margin-bottom: 10px; }
+        .vote-status { text-align: center; color: #f0a030; margin: 10px 0; font-size: 14px; }
+        .timer-info { text-align: center; color: #888; font-size: 13px; margin: 5px 0; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: #1e1e30;
+            padding: 30px;
+            border-radius: 30px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            border: 2px solid #f0a030;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #888;
+            background: none;
+            border: none;
+        }
+        .modal-close:hover { color: #fff; }
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 15px auto;
+        }
+        #wheelCanvas {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1/1;
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(240,160,48,0.3);
+            cursor: pointer;
+        }
+        .wheel-result {
+            margin-top: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 12px;
+            border-radius: 12px;
+            min-height: 50px;
+            background: #2a2a40;
+            border: 2px solid #f0a030;
+            transition: all 0.3s;
+        }
+        .wheel-result.highlight {
+            background: #f0a030;
+            color: #12121c;
+            border-color: #f0a030;
+            box-shadow: 0 0 30px rgba(240,160,48,0.5);
+            transform: scale(1.05);
+        }
+        .pointer {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 30px;
+            z-index: 10;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+        }
+        .btn-spin {
+            background: #f0a030;
+            color: #12121c;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.2s;
+            width: 80%;
+        }
+        .btn-spin:hover { transform: scale(1.05); background: #d48a1a; }
+        .btn-spin:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     </style>
 </head>
 <body>
@@ -41,15 +135,17 @@
     <h1 id="mainTitle">🎵 THE DOGS — голосование</h1>
     <div class="subtitle">Самара (UTC+4) • Нельзя голосовать за свои песни</div>
 
-    <!-- Таймер (обновляется без перерисовки) -->
-    <div id="timerDisplay" class="timer">⏳ Загрузка...</div>
+    <div id="counterDisplay" class="counter">🎵 0 / 12 песен</div>
+    <div id="voteStatusDisplay" class="vote-status"></div>
+    <div id="timerInfo" class="timer-info"></div>
 
-    <!-- Панель разработчика -->
+    <button class="btn btn-fortune" id="fortuneBtn">🎡 Колесо фортуны</button>
+
     <div id="devPanel" class="dev-panel dev-hidden">
         <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
             <span style="font-weight: bold; color: #f0a030;">🛠️ Режим разработчика</span>
             <button class="btn btn-secondary" id="devResetBtn">🔄 Сбросить всё</button>
-            <button class="btn btn-secondary" id="devForcePhaseBtn">⏩ Принудительно переключить фазу</button>
+            <button class="btn btn-secondary" id="devForcePhaseBtn">⏩ Переключить фазу</button>
             <button class="btn btn-secondary" id="devHidePanelBtn">✖️ Скрыть</button>
         </div>
         <div style="margin-top: 6px; font-size: 13px; color: #aaa;">
@@ -69,8 +165,8 @@
         <div class="input-group">
             <p><strong>Вход для голосования</strong></p>
             <input type="text" id="voterNameInput" placeholder="Ваше имя" style="width:100%; padding:10px; border-radius:8px; border:1px solid #444; background:#12121c; color:#fff; margin-bottom:10px;">
-            <input type="password" id="voterPasswordInput" placeholder="Ваш пароль (который вы задали при добавлении песен)" style="width:100%; padding:10px; border-radius:8px; border:1px solid #444; background:#12121c; color:#fff; margin-bottom:10px;">
-            <button class="btn btn-secondary" id="loginBtn">🔑 Войти и увидеть песни</button>
+            <input type="password" id="voterPasswordInput" placeholder="Ваш пароль" style="width:100%; padding:10px; border-radius:8px; border:1px solid #444; background:#12121c; color:#fff; margin-bottom:10px;">
+            <button class="btn btn-secondary" id="loginBtn">🔑 Войти</button>
         </div>
         <div id="voteSongList"></div>
         <button class="btn" id="voteBtn" disabled>🗳️ Проголосовать</button>
@@ -87,158 +183,106 @@
     <div id="stepWait" class="hidden">
         <p style="color:#888;">⏳ Ожидание. Новый сбор начнется во вторник в 12:00.</p>
     </div>
+</div>
 
+<!-- Модальное окно колеса фортуны -->
+<div class="modal-overlay" id="fortuneModal">
+    <div class="modal-content">
+        <button class="modal-close" id="closeFortuneBtn">&times;</button>
+        <h2 style="color:#f0a030; margin-bottom: 10px;">🎡 Колесо фортуны</h2>
+        <p style="color:#aaa; font-size:14px; margin-bottom: 15px;">Крути — и узнай, что играем!</p>
+        <div class="wheel-container">
+            <div class="pointer">▼</div>
+            <canvas id="wheelCanvas" width="400" height="400"></canvas>
+        </div>
+        <div id="wheelResult" class="wheel-result">🎯 Нажми «Крутить!»</div>
+        <button class="btn-spin" id="spinBtn">🔄 Крутить!</button>
+    </div>
 </div>
 
 <script>
     (function() {
         'use strict';
 
-        // --- КОНСТАНТЫ (Самара UTC+4) ---
-        const TZ = 'Europe/Samara';
         const STORAGE_KEY = 'dogs_voting';
+        const VOTE_DURATION_HOURS = 24;
+
+        // --- КОЛЕСО ФОРТУНЫ С ВЕСАМИ ---
+        const FORTUNE_ITEMS = [
+            { text: '🍑 Гурковский проиграл жопу', weight: 10 },
+            { text: '👠 Поем лабутены', weight: 3 },
+            { text: '👑 День короля и шута', weight: 4 },
+            { text: '🎸 Наконец играем Арию', weight: 1 },
+            { text: '💩 День отвратительной попсы', weight: 4 },
+            { text: '🕰️ Старые песни', weight: 3 },
+            { text: '🎬 Песни из мультфильмов', weight: 3 },
+            { text: '🎲 Рок-классика', weight: 4 }
+        ];
+        const FORTUNE_TEXTS = FORTUNE_ITEMS.map(item => item.text);
+        const FORTUNE_WEIGHTS = FORTUNE_ITEMS.map(item => item.weight);
+        const COLORS = ['#e74c3c','#f1c40f','#2ecc71','#3498db','#9b59b6','#e67e22','#1abc9c','#e84393'];
 
         // --- ДАННЫЕ ---
-        let DATA = {
-            songs: [],
-            members: [], // { name, password }
-            votes: {},
-            voters: [],
-            phase: 'collect'
-        };
-
+        let DATA = { songs: [], members: [], votes: {}, voters: [], phase: 'collect', voteStartTime: null };
         let currentVoter = null;
 
+        // --- КОЛЕСО ---
+        let wheelRotation = 0;
+        let isSpinning = false;
+        let canvas, ctx;
+
+        // --- ЗАГРУЗКА/СОХРАНЕНИЕ ---
         function loadData() {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (raw) {
-                try {
-                    const parsed = JSON.parse(raw);
-                    DATA = parsed;
-                } catch(e) {}
+                try { DATA = JSON.parse(raw); } catch(e) {}
             }
             if (!DATA.songs) DATA.songs = [];
             if (!DATA.members) DATA.members = [];
             if (!DATA.votes) DATA.votes = {};
             if (!DATA.voters) DATA.voters = [];
             if (!DATA.phase) DATA.phase = 'collect';
+            if (!DATA.voteStartTime) DATA.voteStartTime = null;
         }
 
         function saveData() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
         }
 
-        // --- ВРЕМЯ (Самара) ---
-        function getSamaraTime() {
-            const now = new Date();
-            return new Date(now.toLocaleString('en-US', { timeZone: TZ }));
+        // --- ОБНОВЛЕНИЕ СЧЁТЧИКА ---
+        function updateCounter() {
+            document.getElementById('counterDisplay').textContent = `🎵 ${DATA.songs.length} / 12 песен`;
         }
 
-        // --- ОПРЕДЕЛЕНИЕ ФАЗЫ ПО ВРЕМЕНИ ---
-        function getPhaseByTime() {
-            const now = getSamaraTime();
-            const day = now.getDay();
-            const hours = now.getHours();
+        // --- ПРОВЕРКА АВТОМАТИЧЕСКОГО ЗАВЕРШЕНИЯ ---
+        function checkAutoComplete() {
+            if (DATA.phase !== 'vote') return;
 
-            if (day === 0) return 'vote';
-            if (day === 1) return 'results';
-            if (day === 2 && hours >= 12) return 'collect';
-            if (day === 2 && hours < 12) return 'results';
-            if (day >= 3 && day <= 6) return 'collect';
-            return 'collect';
-        }
-
-        // --- СЛЕДУЮЩЕЕ СОБЫТИЕ (для таймера) ---
-        function getNextEventTime() {
-            const now = getSamaraTime();
-            const day = now.getDay();
-            const hours = now.getHours();
-
-            let target = new Date(now);
-
-            if (DATA.phase === 'collect') {
-                let daysUntilSun = (7 - day) % 7;
-                if (daysUntilSun === 0 && hours >= 0) daysUntilSun = 7;
-                target.setDate(target.getDate() + daysUntilSun);
-                target.setHours(0, 0, 0, 0);
-            } else if (DATA.phase === 'vote') {
-                let daysUntilMon = (1 - day + 7) % 7;
-                if (daysUntilMon === 0 && hours >= 0) daysUntilMon = 7;
-                target.setDate(target.getDate() + daysUntilMon);
-                target.setHours(0, 0, 0, 0);
-            } else if (DATA.phase === 'results') {
-                let daysUntilTue = (2 - day + 7) % 7;
-                if (daysUntilTue === 0 && hours >= 12) daysUntilTue = 7;
-                target.setDate(target.getDate() + daysUntilTue);
-                target.setHours(12, 0, 0, 0);
-            } else {
-                target.setDate(target.getDate() + 1);
-                target.setHours(0, 0, 0, 0);
+            const totalMembers = DATA.members.length;
+            const votedCount = DATA.voters.length;
+            if (totalMembers > 0 && votedCount >= totalMembers) {
+                DATA.phase = 'results';
+                saveData();
+                render();
+                return;
             }
 
-            return target;
-        }
-
-        // --- ОБНОВЛЕНИЕ ТАЙМЕРА (БЕЗ ПЕРЕРИСОВКИ) ---
-        function updateTimer() {
-            const now = getSamaraTime();
-            const next = getNextEventTime();
-            const diff = Math.max(0, Math.floor((next - now) / 1000));
-
-            const hours = Math.floor(diff / 3600);
-            const minutes = Math.floor((diff % 3600) / 60);
-            const seconds = diff % 60;
-
-            let phaseText = '';
-            if (DATA.phase === 'collect') phaseText = '⏳ До закрытия сбора';
-            else if (DATA.phase === 'vote') phaseText = '🗳️ До окончания голосования';
-            else if (DATA.phase === 'results') phaseText = '🏆 До начала нового сбора';
-            else phaseText = '⏳ Ожидание';
-
-            document.getElementById('timerDisplay').textContent =
-                phaseText + ': ' +
-                String(hours).padStart(2, '0') + ':' +
-                String(minutes).padStart(2, '0') + ':' +
-                String(seconds).padStart(2, '0');
-        }
-
-        // --- ПЕРЕКЛЮЧЕНИЕ ФАЗ (автоматическое) ---
-        function autoSwitchPhase() {
-            loadData();
-            const now = getSamaraTime();
-            const day = now.getDay();
-            const hours = now.getHours();
-            const mins = now.getMinutes();
-
-            // Автоматический сброс во вторник 12:00
-            if (day === 2 && hours === 12 && mins === 0) {
-                if (DATA.songs.length > 0) {
-                    DATA.songs = [];
-                    DATA.members = [];
-                    DATA.votes = {};
-                    DATA.voters = [];
+            if (DATA.voteStartTime) {
+                const elapsed = (Date.now() - DATA.voteStartTime) / (1000 * 60 * 60);
+                if (elapsed >= VOTE_DURATION_HOURS) {
+                    DATA.phase = 'results';
                     saveData();
+                    render();
+                    return;
                 }
             }
-
-            const newPhase = getPhaseByTime();
-            if (DATA.phase !== newPhase) {
-                DATA.phase = newPhase;
-                saveData();
-                render(); // перерисовываем только при смене фазы
-            }
         }
 
-        // --- ПЕРЕКЛЮЧЕНИЕ ФАЗ (вручную через dev) ---
-        function goToPhase(phase) {
-            DATA.phase = phase;
-            saveData();
-            render();
-        }
-
-        // --- РЕНДЕРИНГ (только когда нужно) ---
+        // --- РЕНДЕРИНГ ---
         function render() {
             loadData();
+            updateCounter();
+            checkAutoComplete();
 
             document.getElementById('stepCollect').classList.add('hidden');
             document.getElementById('stepVote').classList.add('hidden');
@@ -251,6 +295,7 @@
             } else if (DATA.phase === 'vote') {
                 document.getElementById('stepVote').classList.remove('hidden');
                 renderVote();
+                updateVoteStatus();
             } else if (DATA.phase === 'results') {
                 document.getElementById('stepResults').classList.remove('hidden');
                 renderResults();
@@ -262,13 +307,38 @@
                 `Фаза: ${DATA.phase} | Песен: ${DATA.songs.length} | Проголосовало: ${DATA.voters.length}`;
         }
 
-        // --- РЕНДЕР СБОРА (с паролем) ---
+        // --- ОБНОВЛЕНИЕ СТАТУСА ГОЛОСОВАНИЯ ---
+        function updateVoteStatus() {
+            const total = DATA.members.length;
+            const voted = DATA.voters.length;
+            const statusEl = document.getElementById('voteStatusDisplay');
+            const timerEl = document.getElementById('timerInfo');
+
+            if (total === 0) {
+                statusEl.textContent = '⏳ Ожидание начала голосования...';
+                timerEl.textContent = '';
+                return;
+            }
+
+            statusEl.textContent = `🗳️ Проголосовало: ${voted} из ${total} участников`;
+
+            if (DATA.voteStartTime) {
+                const elapsed = (Date.now() - DATA.voteStartTime) / (1000 * 60 * 60);
+                const remaining = Math.max(0, VOTE_DURATION_HOURS - elapsed);
+                const hours = Math.floor(remaining);
+                const minutes = Math.floor((remaining - hours) * 60);
+                timerEl.textContent = `⏳ Осталось времени: ${hours} ч ${minutes} мин`;
+            } else {
+                timerEl.textContent = '⏳ Время голосования не установлено';
+            }
+        }
+
+        // --- РЕНДЕР СБОРА ---
         function renderCollect() {
             const formContainer = document.getElementById('memberFormContainer');
             const status = document.getElementById('collectStatus');
             const finishBtn = document.getElementById('finishCollectBtn');
 
-            // Сохраняем текущие значения полей, если они есть
             const existingName = document.getElementById('newMemberName')?.value || '';
             const existingPass = document.getElementById('newMemberPassword')?.value || '';
             const existingSongs = [];
@@ -281,12 +351,9 @@
             if (DATA.songs.length < 12) {
                 let formHtml = '<div class="input-group">';
                 formHtml += '<p><strong>Добавьте свои 4 песни</strong></p>';
-                formHtml += '<p style="color:#888; font-size:13px; margin-bottom:10px;">Вы не видите песни других участников</p>';
-
                 formHtml += `<input type="text" id="newMemberName" placeholder="Ваше имя" value="${existingName}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #444; background:#12121c; color:#fff; margin-bottom:10px;">`;
-                formHtml += `<input type="password" id="newMemberPassword" placeholder="Придумайте пароль (мин. 4 символа)" value="${existingPass}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #444; background:#12121c; color:#fff; margin-bottom:10px;">`;
-                formHtml += '<p style="color:#888; font-size:12px; margin-bottom:10px;">🔑 Пароль нужен будет для голосования. Никому не говорите!</p>';
-
+                formHtml += `<input type="password" id="newMemberPassword" placeholder="Пароль (мин. 4 символа)" value="${existingPass}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #444; background:#12121c; color:#fff; margin-bottom:10px;">`;
+                formHtml += '<p style="color:#888; font-size:12px; margin-bottom:10px;">🔑 Пароль нужен для голосования</p>';
                 for (let i = 0; i < 4; i++) {
                     const val = existingSongs[i] || '';
                     formHtml += '<div class="input-row">';
@@ -297,19 +364,18 @@
                 formHtml += '<button class="btn btn-secondary" onclick="window.addMember()">➕ Добавить песни</button>';
                 formHtml += '</div>';
                 formContainer.innerHTML = formHtml;
-
-                status.textContent = 'Добавлено: ' + DATA.songs.length + ' / 12 песен';
+                status.textContent = 'Введите свои 4 песни и нажмите «Добавить».';
             } else {
-                formContainer.innerHTML = '<p style="color:#6c6; text-align:center;">✅ Все 12 песен собраны! Переходите к голосованию.</p>';
+                formContainer.innerHTML = '<p style="color:#6c6; text-align:center;">✅ Все 12 песен собраны!</p>';
                 status.textContent = 'Сбор завершён!';
             }
 
             const canFinish = (DATA.songs.length === 12);
             finishBtn.disabled = !canFinish;
-            finishBtn.textContent = canFinish ? '✅ Завершить сбор' : '⏳ Нужно ещё ' + (12 - DATA.songs.length) + ' песен';
+            finishBtn.textContent = canFinish ? '✅ Завершить сбор' : `⏳ Нужно ещё ${12 - DATA.songs.length} песен`;
         }
 
-        // --- ДОБАВИТЬ УЧАСТНИКА (с паролем) ---
+        // --- ДОБАВИТЬ УЧАСТНИКА ---
         window.addMember = function() {
             const nameInput = document.getElementById('newMemberName');
             const passInput = document.getElementById('newMemberPassword');
@@ -342,8 +408,7 @@
             DATA.songs.push(...songs);
             saveData();
             render();
-
-            alert('✅ Ваши 4 песни добавлены! Пароль сохранён. Теперь ход другого участника.');
+            alert('✅ Ваши 4 песни добавлены!');
         };
 
         // --- ЗАВЕРШИТЬ СБОР ---
@@ -352,10 +417,13 @@
                 alert('Нужно ровно 12 песен! Сейчас ' + DATA.songs.length);
                 return;
             }
-            goToPhase('vote');
+            DATA.phase = 'vote';
+            DATA.voteStartTime = Date.now();
+            saveData();
+            render();
         });
 
-        // --- РЕНДЕР ГОЛОСОВАНИЯ (с паролем) ---
+        // --- РЕНДЕР ГОЛОСОВАНИЯ ---
         function renderVote() {
             const list = document.getElementById('voteSongList');
             const status = document.getElementById('voteStatus');
@@ -403,7 +471,7 @@
             const voteBtn = document.getElementById('voteBtn');
 
             if (!name) {
-                list.innerHTML = '<p style="color:#888;">Войдите в систему, чтобы увидеть песни.</p>';
+                list.innerHTML = '<p style="color:#888;">Войдите в систему.</p>';
                 voteBtn.disabled = true;
                 return;
             }
@@ -457,9 +525,7 @@
             if (checked.length === 0) { alert('Выберите хотя бы одну песню.'); return; }
 
             const indices = [];
-            checked.forEach(cb => {
-                indices.push(parseInt(cb.dataset.index));
-            });
+            checked.forEach(cb => { indices.push(parseInt(cb.dataset.index)); });
 
             DATA.votes[name] = indices;
             DATA.voters.push(name);
@@ -503,7 +569,7 @@
             box.innerHTML = html;
         }
 
-        // --- КНОПКА СБРОСА (для админа) ---
+        // --- СБРОС ---
         document.getElementById('resetBtn').addEventListener('click', function() {
             if (confirm('Сбросить все данные?')) {
                 localStorage.removeItem(STORAGE_KEY);
@@ -511,24 +577,19 @@
             }
         });
 
-        // --- РЕЖИМ РАЗРАБОТЧИКА (3 клика по заголовку) ---
+        // --- РЕЖИМ РАЗРАБОТЧИКА ---
         let clickCount = 0;
         document.getElementById('mainTitle').addEventListener('click', function() {
             clickCount++;
             if (clickCount >= 3) {
-                const panel = document.getElementById('devPanel');
-                if (panel.classList.contains('dev-hidden')) {
-                    panel.classList.remove('dev-hidden');
-                } else {
-                    panel.classList.add('dev-hidden');
-                }
+                document.getElementById('devPanel').classList.toggle('dev-hidden');
                 clickCount = 0;
             }
             setTimeout(() => { clickCount = 0; }, 2000);
         });
 
         document.getElementById('devResetBtn').addEventListener('click', function() {
-            if (confirm('Сбросить все данные (песни, голоса, фазы)?')) {
+            if (confirm('Сбросить все данные?')) {
                 localStorage.removeItem(STORAGE_KEY);
                 location.reload();
             }
@@ -540,26 +601,174 @@
             let idx = phases.indexOf(current);
             if (idx === -1) idx = 0;
             const next = phases[(idx + 1) % phases.length];
-            goToPhase(next);
+            DATA.phase = next;
+            saveData();
+            render();
         });
 
         document.getElementById('devHidePanelBtn').addEventListener('click', function() {
             document.getElementById('devPanel').classList.add('dev-hidden');
         });
 
+        // =====================================================
+        // ============= КОЛЕСО ФОРТУНЫ ========================
+        // =====================================================
+
+        function getWeightedRandomIndex() {
+            const totalWeight = FORTUNE_WEIGHTS.reduce((a, b) => a + b, 0);
+            let random = Math.random() * totalWeight;
+            for (let i = 0; i < FORTUNE_WEIGHTS.length; i++) {
+                random -= FORTUNE_WEIGHTS[i];
+                if (random <= 0) {
+                    return i;
+                }
+            }
+            return FORTUNE_WEIGHTS.length - 1;
+        }
+
+        function drawWheel(rotation) {
+            const size = canvas.width;
+            const centerX = size/2, centerY = size/2;
+            const radius = size/2 - 10;
+            const count = FORTUNE_TEXTS.length;
+            const arcSize = (2 * Math.PI) / count;
+
+            ctx.clearRect(0, 0, size, size);
+
+            for (let i = 0; i < count; i++) {
+                const startAngle = rotation + i * arcSize;
+                const endAngle = startAngle + arcSize;
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = COLORS[i % COLORS.length];
+                ctx.fill();
+                ctx.strokeStyle = '#12121c';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                const angle = startAngle + arcSize/2;
+                const textRadius = radius * 0.65;
+                const x = centerX + Math.cos(angle) * textRadius;
+                const y = centerY + Math.sin(angle) * textRadius;
+
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(angle + Math.PI/2);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(FORTUNE_TEXTS[i], 0, 0);
+                ctx.restore();
+            }
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 25, 0, 2 * Math.PI);
+            ctx.fillStyle = '#f0a030';
+            ctx.fill();
+            ctx.strokeStyle = '#12121c';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.fillStyle = '#12121c';
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🎸', centerX, centerY);
+        }
+
+        function getResultIndex(rotation) {
+            const count = FORTUNE_TEXTS.length;
+            const arcSize = (2 * Math.PI) / count;
+            const pointerAngle = -Math.PI / 2;
+            let raw = (pointerAngle - rotation) % (2 * Math.PI);
+            if (raw < 0) raw += 2 * Math.PI;
+            return Math.floor(raw / arcSize) % count;
+        }
+
+        function spinWheel() {
+            if (isSpinning) return;
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('wheelResult').textContent = '🌀 Крутим...';
+            document.getElementById('wheelResult').classList.remove('highlight');
+
+            const targetIndex = getWeightedRandomIndex();
+            const targetAngle = wheelRotation + (5 + Math.random() * 5) * 2 * Math.PI + 
+                                (targetIndex / FORTUNE_TEXTS.length) * 2 * Math.PI;
+
+            const startTime = performance.now();
+            const duration = 4000 + Math.random() * 2000;
+
+            function animate(time) {
+                const elapsed = time - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3);
+                const currentAngle = wheelRotation + (targetAngle - wheelRotation) * ease;
+                drawWheel(currentAngle);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    wheelRotation = targetAngle % (2 * Math.PI);
+                    const resultIdx = getResultIndex(wheelRotation);
+                    const result = FORTUNE_TEXTS[resultIdx];
+                    document.getElementById('wheelResult').textContent = '🎯 ' + result;
+                    document.getElementById('wheelResult').classList.add('highlight');
+                    isSpinning = false;
+                    document.getElementById('spinBtn').disabled = false;
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // --- ИНИЦИАЛИЗАЦИЯ КОЛЕСА ---
+        function initWheel() {
+            canvas = document.getElementById('wheelCanvas');
+            ctx = canvas.getContext('2d');
+            drawWheel(0);
+
+            document.getElementById('spinBtn').addEventListener('click', spinWheel);
+            canvas.addEventListener('click', spinWheel);
+
+            document.getElementById('fortuneBtn').addEventListener('click', function() {
+                document.getElementById('fortuneModal').classList.add('active');
+                drawWheel(wheelRotation);
+            });
+
+            document.getElementById('closeFortuneBtn').addEventListener('click', function() {
+                document.getElementById('fortuneModal').classList.remove('active');
+            });
+
+            document.getElementById('fortuneModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        }
+
         // --- ЗАПУСК ---
         loadData();
-
-        // Проверяем фазу каждые 5 МИНУТ (вместо 10 секунд)
-        setInterval(autoSwitchPhase, 300000);
-
-        // Таймер обновляем каждую секунду (но НЕ перерисовываем страницу)
-        setInterval(updateTimer, 1000);
-
-        // Первый рендер
         render();
 
-        console.log('🎵 Голосование THE DOGS с паролями запущено. Автообновление фазы — каждые 5 минут.');
+        setInterval(function() {
+            if (DATA.phase === 'vote') {
+                updateVoteStatus();
+                checkAutoComplete();
+            }
+        }, 10000);
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                initWheel();
+            });
+        } else {
+            initWheel();
+        }
+
+        console.log('🎵 THE DOGS — Голосование + Фортуна (с весами) запущены.');
     })();
 </script>
 </body>
