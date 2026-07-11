@@ -27,7 +27,6 @@
         .dev-panel { background: #2a2a40; padding: 15px; border-radius: 10px; margin: 10px 0; border: 1px dashed #f0a030; }
         .dev-panel .btn { font-size: 13px; padding: 8px 16px; width: auto; display: inline-block; margin-right: 8px; }
         .dev-hidden { display: none; }
-        .password-hint { color: #888; font-size: 13px; margin-bottom: 10px; }
         .song-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #333; }
         .song-item:last-child { border-bottom: none; }
         .song-item.blocked { opacity: 0.4; pointer-events: none; }
@@ -138,8 +137,6 @@
     <div id="counterDisplay" class="counter">🎵 0 / 12 песен</div>
     <div id="voteStatusDisplay" class="vote-status"></div>
     <div id="timerInfo" class="timer-info"></div>
-
-    <button class="btn btn-fortune" id="fortuneBtn">🎡 Колесо фортуны</button>
 
     <div id="devPanel" class="dev-panel dev-hidden">
         <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
@@ -370,6 +367,21 @@
                 status.textContent = 'Сбор завершён!';
             }
 
+            // --- АВТОМАТИЧЕСКОЕ ОТКРЫТИЕ КОЛЕСА ПОСЛЕ ДОБАВЛЕНИЯ ПЕСЕН ---
+            if (DATA.songs.length > 0 && DATA.songs.length < 12) {
+                const lastMember = DATA.members[DATA.members.length - 1];
+                if (lastMember) {
+                    status.innerHTML = `✅ ${lastMember.name}, ваши 4 песни добавлены!`;
+                    setTimeout(() => {
+                        const modal = document.getElementById('fortuneModal');
+                        if (modal) {
+                            modal.classList.add('active');
+                            drawWheel(wheelRotation);
+                        }
+                    }, 500);
+                }
+            }
+
             const canFinish = (DATA.songs.length === 12);
             finishBtn.disabled = !canFinish;
             finishBtn.textContent = canFinish ? '✅ Завершить сбор' : `⏳ Нужно ещё ${12 - DATA.songs.length} песен`;
@@ -514,7 +526,7 @@
             status.textContent = 'Вы вошли как ' + name + '. Выберите 6 песен.';
         }
 
-        // --- ГОЛОСОВАНИЕ ---
+        // --- ГОЛОСОВАНИЕ + АВТОМАТИЧЕСКОЕ КОЛЕСО ---
         document.getElementById('voteBtn').addEventListener('click', function() {
             const name = currentVoter;
             if (!name) { alert('Сначала войдите!'); return; }
@@ -530,6 +542,17 @@
             DATA.votes[name] = indices;
             DATA.voters.push(name);
             saveData();
+
+            // --- ПОСЛЕ ГОЛОСОВАНИЯ АВТОМАТИЧЕСКИ ОТКРЫВАЕМ КОЛЕСО ---
+            const modal = document.getElementById('fortuneModal');
+            if (modal) {
+                modal.classList.add('active');
+                drawWheel(wheelRotation);
+                setTimeout(() => {
+                    spinWheel();
+                }, 300);
+            }
+
             render();
             alert('✅ Ваш голос учтён!');
         });
@@ -732,21 +755,6 @@
 
             document.getElementById('spinBtn').addEventListener('click', spinWheel);
             canvas.addEventListener('click', spinWheel);
-
-            document.getElementById('fortuneBtn').addEventListener('click', function() {
-                document.getElementById('fortuneModal').classList.add('active');
-                drawWheel(wheelRotation);
-            });
-
-            document.getElementById('closeFortuneBtn').addEventListener('click', function() {
-                document.getElementById('fortuneModal').classList.remove('active');
-            });
-
-            document.getElementById('fortuneModal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    this.classList.remove('active');
-                }
-            });
         }
 
         // --- ЗАПУСК ---
